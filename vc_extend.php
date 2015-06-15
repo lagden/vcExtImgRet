@@ -1,24 +1,22 @@
 <?php
 /*
 Plugin Name: Add image retina
-Plugin URI: http://lagden.webfaction.com/wp/addons/vcExtImgRet.zip
+Plugin URI: http://lagden.webfaction.com/wp/addons/vcExtImgRet
 Description: Easy way to add images retina
-Version: 0.1.0
+Version: 0.1.1
 Author: Thiago Lagden
 Author URI: http://lagden.in
 License: GPLv2 or later
 */
 
-// don't load directly
 if (!defined('ABSPATH')) die('-1');
 
 class VCExtendAddonClass {
   function __construct() {
-    // We safely integrate with VC with this hook
-    add_action( 'init', array( $this, 'integrateWithVC' ) );
+    add_action('init', [$this, 'integrateWithVC']);
 
     // Use this when creating a shortcode addon
-    add_shortcode( 'imgret', array( $this, 'renderImgRetina' ) );
+    add_shortcode('imgret', [$this, 'renderImgRetina']);
 
     // Register CSS and JS
     // add_action( 'wp_enqueue_scripts', array( $this, 'loadCssAndJs' ) );
@@ -78,10 +76,28 @@ class VCExtendAddonClass {
           "type" => "textfield",
           "holder" => "div",
           "class" => "",
-          "heading" => __("Custom CSS Class", 'vc_extend'),
+          "heading" => __("Inline style", 'vc_extend'),
+          "param_name" => "style",
+          "value" => null,
+          "description" => __("Set inline style", 'vc_extend')
+        ],
+        [
+          "type" => "textfield",
+          "holder" => "div",
+          "class" => "",
+          "heading" => __("Extra Class", 'vc_extend'),
           "param_name" => "css",
           "value" => null,
-          "description" => __("Set a custom CSS Class", 'vc_extend')
+          "description" => __("Set extra class separated by space", 'vc_extend')
+        ],
+        [
+          "type" => "textfield",
+          "holder" => "div",
+          "class" => "",
+          "heading" => __("Link", 'vc_extend'),
+          "param_name" => "link",
+          "value" => null,
+          "description" => __("Set a link for your image", 'vc_extend')
         ]
       ]
     ]);
@@ -94,12 +110,44 @@ class VCExtendAddonClass {
     extract(shortcode_atts([
       'img1x' => null,
       'img2x' => null,
-      'css' => null,
       'alt' => null,
+      'style' => null,
+      'css' => null,
+      'link' => null,
     ], $atts));
     $content = wpb_js_remove_wpautop($content, true);
-    $output = "<img src=\"{$img1x}\" srcset=\"{$img2x} 2x\" alt=\"{$alt}\" class=\"{$css}\">";
+
+    $img = wp_get_attachment_image_src($img1x, 'full');
+    $retina = wp_get_attachment_image_src($img2x, 'full');
+
+    $dados = [
+      'img' => $img[0],
+      'retina' => $retina[0],
+      'caption' => $alt,
+      'style' => $style,
+      'css' => $css,
+    ];
+
+    $outputImg = preg_replace_callback(
+      '/\{(.*?)\}/i',
+      function($matches) use ($dados) {
+        return $dados[$matches[1]];
+      },
+    static::templateRetina());
+
+    if ($link) {
+      $output = "<a href=\"{$link}\">{$outputImg}</a>";
+    } else {
+      $output = $outputImg;
+    }
     return $output;
+  }
+
+  static private function templateRetina() {
+    return $template = implode('', [
+      '<img scr="{img}" srcset="{retina} 2x" alt="{caption} "',
+      'style="{style}" class="{css} />"',
+    ]);
   }
 
     /*
