@@ -87,7 +87,7 @@ class VCExtendImageRetinaClass {
             "Parent" => "_parent",
             "Top" => "_top",
           ],
-          "description" => __("Set extra class separated by space", 'vc_extend')
+          "description" => __("Choose the window target", 'vc_extend')
         ],
       ]
     ]);
