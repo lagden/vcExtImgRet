@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) die('-1');
 class VCExtendImageRetinaClass {
   public function __construct() {
     add_action('init', [$this,'integrateWithVC']);
+    add_action( 'wp_enqueue_scripts', [$this, 'loadCssAndJs']);
     add_shortcode('imgret', [$this,'renderImgRetina']);
   }
 
@@ -31,18 +32,21 @@ class VCExtendImageRetinaClass {
       "controls" => "full",
       "icon" => plugins_url('assets/retina.svg', __FILE__), // or css class name which you can reffer in your css file later. Example: "vc_extend_my_class"
       "category" => __('Content', 'js_composer'),
+
       "params" => [
         [
           "type" => "attach_image",
           "heading" => __("Image 1x", 'vc_extend'),
           "param_name" => "img1x",
           "description" => __("Choose a small image", 'vc_extend'),
+          "group" => __("Images", 'vc_extend')
         ],
         [
           "type" => "attach_image",
           "heading" => __("Image 2x", 'vc_extend'),
           "param_name" => "img2x",
           "description" => __("Choose a retina image", 'vc_extend'),
+          "group" => __("Images", 'vc_extend')
         ],
         [
           "type" => "textfield",
@@ -51,6 +55,20 @@ class VCExtendImageRetinaClass {
           "param_name" => "alt",
           "value" => "",
           "description" => __("Set a caption for image", 'vc_extend'),
+          "group" => __("Images", 'vc_extend')
+        ],
+        [
+          "type" => "dropdown",
+          "class" => "",
+          "heading" => __("Image align", 'vc_extend'),
+          "param_name" => "align",
+          "value" => [
+            "Default" => "vc_extend_ImageRetina",
+            "Left" => "vc_extend_ImageRetina vc_extend_ImageRetina--left",
+            "Right" => "vc_extend_ImageRetina vc_extend_ImageRetina--right",
+            "Center" => "vc_extend_ImageRetina vc_extend_ImageRetina--center",
+          ],
+          "group" => __("Images", 'vc_extend')
         ],
         [
           "type" => "textfield",
@@ -59,6 +77,7 @@ class VCExtendImageRetinaClass {
           "param_name" => "style",
           "value" => "",
           "description" => __("You can set the custom width and/or height here", 'vc_extend'),
+          "group" => __("Advanced", 'vc_extend')
         ],
         [
           "type" => "textfield",
@@ -66,7 +85,18 @@ class VCExtendImageRetinaClass {
           "heading" => __("Extra Class", 'vc_extend'),
           "param_name" => "css",
           "value" => "",
-          "description" => __("Set extra class separated by space", 'vc_extend')
+          "description" => __("Set extra class separated by space", 'vc_extend'),
+          "group" => __("Advanced", 'vc_extend')
+        ],
+        [
+          "type" => "checkbox",
+          "class" => "",
+          "heading" => __("Link the image", 'vc_extend'),
+          "param_name" => "useLink",
+          "value" => [
+            __("Use link", 'vc_extend') => 0
+          ],
+          "group" => __("Advanced", 'vc_extend')
         ],
         [
           "type" => "textfield",
@@ -74,7 +104,8 @@ class VCExtendImageRetinaClass {
           "heading" => __("Image Link", 'vc_extend'),
           "param_name" => "link",
           "value" => "http://",
-          "description" => __("Add link for image", 'vc_extend')
+          "description" => __("Add link for image", 'vc_extend'),
+          "group" => __("Advanced", 'vc_extend')
         ],
         [
           "type" => "dropdown",
@@ -87,7 +118,8 @@ class VCExtendImageRetinaClass {
             "Parent" => "_parent",
             "Top" => "_top",
           ],
-          "description" => __("Choose the window target", 'vc_extend')
+          "description" => __("Choose the window target", 'vc_extend'),
+          "group" => __("Advanced", 'vc_extend')
         ],
       ]
     ]);
@@ -95,13 +127,15 @@ class VCExtendImageRetinaClass {
 
   public function renderImgRetina($atts, $content = null) {
     extract(shortcode_atts([
-      'img1x'  => '',
-      'img2x'  => '',
-      'alt'    => '',
-      'style'  => '',
-      'css'    => '',
-      'link'   => '',
-      'target' => '',
+      'img1x'   => '',
+      'img2x'   => '',
+      'alt'     => '',
+      'align'   => '',
+      'style'   => '',
+      'css'     => '',
+      'useLink' => '',
+      'link'    => '',
+      'target'  => '',
     ], $atts));
     $content = wpb_js_remove_wpautop($content, true);
 
@@ -113,7 +147,7 @@ class VCExtendImageRetinaClass {
       'retina' => $retina[0],
       'caption' => $alt,
       'style' => $style,
-      'css' => $css,
+      'css' => "{$css} {$align}",
     ];
 
     $outputImg = preg_replace_callback(
@@ -125,7 +159,10 @@ class VCExtendImageRetinaClass {
 
     $output = '';
 
-    if ($link !== '') {
+    var_dump($useLink);
+
+    $useLink = ($useLink == 1) ? true : false;
+    if ($useLink && $link !== '') {
       $output = "<a href=\"{$link}\" target=\"{$target}\">{$outputImg}</a>";
     } else {
       $output = $outputImg;
@@ -138,11 +175,16 @@ class VCExtendImageRetinaClass {
     return $template = implode('', [
       '<img ',
       'scr="{img}" ',
-      'srcset="{retina} 2x" ',
+      'srcset="{img} 1x, {retina} 2x" ',
       'alt="{caption}" ',
       'style="{style}" ',
       'class="{css}" />',
     ]);
+  }
+
+  public function loadCssAndJs() {
+    wp_register_style('vc_extend_style', plugins_url('assets/vc_extend_ImageRetina.css', __FILE__));
+    wp_enqueue_style('vc_extend_style');
   }
 
   public function showVcVersionNotice() {
